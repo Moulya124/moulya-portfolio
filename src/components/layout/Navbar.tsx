@@ -14,30 +14,43 @@ export function Navbar() {
   const [activeSection, setActiveSection] = useState<string>("");
 
   useEffect(() => {
-    const onScroll = () => {
+    const updateActiveSection = () => {
       setIsScrolled(window.scrollY > 20);
 
-      // Track active section for navigation highlight
+      // Check current hash or scroll position
       const sections = PROFILE.navItems.map((item) => item.href.replace("#", ""));
-      const current = sections.find((section) => {
-        const el = document.getElementById(section);
+      const scrollPosition = window.scrollY + 140;
+
+      let currentActive = "";
+      for (const sectionId of sections) {
+        const el = document.getElementById(sectionId);
         if (el) {
-          const rect = el.getBoundingClientRect();
-          return rect.top <= 120 && rect.bottom >= 120;
+          const top = el.offsetTop;
+          const height = el.offsetHeight || 300;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentActive = `#${sectionId}`;
+          }
         }
-        return false;
-      });
-      if (current) {
-        setActiveSection(`#${current}`);
       }
+
+      // If at top of page, no section is active
+      if (window.scrollY < 100 && !window.location.hash) {
+        currentActive = "";
+      } else if (!currentActive && window.location.hash) {
+        currentActive = window.location.hash;
+      }
+
+      setActiveSection(currentActive);
     };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    // Check initial scroll state asynchronously
-    const timer = setTimeout(onScroll, 0);
+    window.addEventListener("scroll", updateActiveSection, { passive: true });
+    window.addEventListener("hashchange", updateActiveSection);
+
+    const timer = setTimeout(updateActiveSection, 50);
 
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scroll", updateActiveSection);
+      window.removeEventListener("hashchange", updateActiveSection);
       clearTimeout(timer);
     };
   }, []);
@@ -106,6 +119,7 @@ export function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setActiveSection(item.href)}
                 className={cn(
                   "px-3 py-1.5 rounded-md text-xs font-mono transition-colors",
                   isActive
@@ -167,8 +181,16 @@ export function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={closeMobileMenu}
-                className="block text-sm font-mono uppercase tracking-wide text-slate-300 hover:text-sky-400 py-2.5 border-b border-[#1e293b]/60 transition-colors"
+                onClick={() => {
+                  setActiveSection(item.href);
+                  closeMobileMenu();
+                }}
+                className={cn(
+                  "block text-sm font-mono uppercase tracking-wide py-2.5 border-b border-[#1e293b]/60 transition-colors",
+                  activeSection === item.href
+                    ? "text-sky-400 font-semibold"
+                    : "text-slate-300 hover:text-sky-400"
+                )}
               >
                 {item.label}
               </Link>
